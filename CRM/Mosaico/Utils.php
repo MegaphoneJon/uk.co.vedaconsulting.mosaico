@@ -362,6 +362,8 @@ class CRM_Mosaico_Utils {
     else {
 
       $image = new Imagick($config['BASE_DIR'] . $config['UPLOADS_DIR'] . $file_name);
+      // Handle multi-frame images (i.e. animated GIFs)
+      $image = $image->coalesceImages();
 
       if ($method == "resize") {
         $resize_width = $width;
@@ -378,7 +380,9 @@ class CRM_Mosaico_Utils {
         // In order to use last parameter(best fit), this will make right scale, as true in 'resizeImage' menthod, we can't have 0 for height
         // hence retreiving height from image
         // more details about best fit http://php.net/manual/en/imagick.resizeimage.php
-        $image->resizeImage($resize_width, $resize_height, Imagick::FILTER_LANCZOS, 1.0, TRUE);
+        do {
+          $image->resizeImage($resize_width, $resize_height, Imagick::FILTER_LANCZOS, 1.0, TRUE);
+        } while ($image->nextImage());
       }
       else {
         // assert: $method == "cover"
@@ -409,7 +413,8 @@ class CRM_Mosaico_Utils {
       }
       //save image for next time so don't need to resize each time
       if ($f = fopen($config['BASE_DIR'] . $config['STATIC_DIR'] . $file_name, "w")) {
-        $image->writeImageFile($f);
+        $image = $image->deconstructImages();
+        $image->writeImagesFile($f);
       }
 
     }
